@@ -5,7 +5,7 @@ name: Patch and Push (SwampUp 2026 ZTR demo - remediation)
 # endpoint found), so this workflow scripts the version bump itself rather
 # than relying on a native platform automation. The remediation is still
 # real: the compliant log4j-core build genuinely only exists in
-# chainguard-java, resolved through the same ZTR-enabled maven-selfheal-virtual
+# chainguard-java, resolved through the same ZTR-enabled alpha-mvn-virtual
 # repo used for the vulnerable build - nothing here is source-patched by hand.
 
 on:
@@ -62,14 +62,14 @@ jobs:
           print(f"pom.xml log4j-core version set to {version}")
           PYEOF
 
-      - name: Configure Maven resolution/deployment through maven-selfheal-virtual
+      - name: Configure Maven resolution/deployment through alpha-mvn-virtual
         run: |
           jf mvn-config \
             --server-id-resolve=solenglatest --server-id-deploy=solenglatest \
-            --repo-resolve-releases=maven-selfheal-virtual --repo-resolve-snapshots=maven-selfheal-virtual \
-            --repo-deploy-releases=maven-selfheal-virtual --repo-deploy-snapshots=maven-selfheal-virtual
+            --repo-resolve-releases=alpha-mvn-virtual --repo-resolve-snapshots=alpha-mvn-virtual \
+            --repo-deploy-releases=alpha-mvn-virtual --repo-deploy-snapshots=alpha-mvn-virtual
 
-      - name: Build patched jar with jf mvn, resolving through maven-selfheal-virtual
+      - name: Build patched jar with jf mvn, resolving through alpha-mvn-virtual
         run: jf mvn -B -DskipTests package
 
       - name: Set up Docker Buildx
