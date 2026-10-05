@@ -1,0 +1,92 @@
+name: "mpate-petclinic-maven"
+on: push
+
+permissions:
+  actions: read # for detecting the Github Actions environment.
+  id-token: write # for creating OIDC tokens for signing.
+  packages: write # for uploading attestations.
+  contents: read
+  security-events: write # Required for uploading code scanning.
+env:
+  JAVA_VERSION: "21"
+  JOB_SUMMARY: true
+  JFROG_CLI_LOG_LEVEL: DEBUG # DEBUG, INFO, WARN, ERROR
+  RT_REPO_MVN_VIRTUAL: "alpha-mvn-virtual"
+
+jobs:
+  maven-build-and-publish:
+    name: "Maven Package"
+    runs-on: ubuntu-latest
+    env:
+      BUILD_NAME: "mpate-petclinic-maven"
+      BUILD_ID: "ga-mvn-${{ github.run_number }}"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      # Authenticates to the JFrog Platform with a GitHub OIDC token (no stored secrets).
+      # Requires an OIDC integration named below in the JFrog Platform, with an identity mapping
+      # for this repository, and the JF_URL repository/organization variable.
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        id: setup-cli
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+        with:
+          version: 2.104.1
+          oidc-provider-name: github-docportal
+
+      - name: Run JFrog CLI
+        run: |
+          # Ping the server
+          jf rt ping
+
+      - name: "Config Maven with JFrog CLI"
+        run: |
+          jf mvnc \
+            --server-id-resolve=$SETUP_JFROG_CLI_SERVER_IDS --server-id-deploy=$SETUP_JFROG_CLI_SERVER_IDS \
+            --repo-resolve-releases=${{ env.RT_REPO_MVN_VIRTUAL }} --repo-resolve-snapshots=${{ env.RT_REPO_MVN_VIRTUAL }} \
+            --repo-deploy-releases=${{ env.RT_REPO_MVN_VIRTUAL }} --repo-deploy-snapshots=${{ env.RT_REPO_MVN_VIRTUAL }}
+
+      - name: "Curation: audit" # https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli/cli-for-jfrog-security/cli-for-jfrog-curation
+        run: |
+          jf ca --format=table --threads=100
+
+      - name: "Security Audit" # https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli/cli-for-jfrog-security
+        run: |
+          jf audit
+
+      # Resolves dependencies through alpha-mvn-virtual, builds, and deploys the jar/pom to
+      # alpha-mvn-virtual, recording everything as build info.
+      - name: "Build and publish Maven artifacts"
+        run: |
+          jf mvn -B -DskipTests clean deploy \
+            --build-name=${{ env.BUILD_NAME }} --build-number=${{ env.BUILD_ID }}
+
+      - name: "Collect env variables"
+        run: |
+          jf rt bce ${{ env.BUILD_NAME }} ${{ env.BUILD_ID }} # Collect environment variables and attach them to the build
+          jf rt bag ${{ env.BUILD_NAME }} ${{ env.BUILD_ID }} # Collect VCS information (repository URL, branch, commit ID)
+
+      - name: "Publish BuildInfo"
+        run: |
+          jf rt bp ${{ env.BUILD_NAME }} ${{ env.BUILD_ID }} --detailed-summary=true
+
+      # Give Xray time to index the published build before scanning it.
+      - name: "Sleep for few seconds"
+        env:
+          SLEEP_TIME: 30
+        run: |
+          echo "Sleeping for ${{ env.SLEEP_TIME }} seconds..."
+          sleep ${{ env.SLEEP_TIME }}
+
+      - name: "Build Scan"
+        run: |
+          jf bs ${{ env.BUILD_NAME }} ${{ env.BUILD_ID }} --fail=false --format=table --extended-table=true --rescan=false --vuln=true
