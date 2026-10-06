@@ -41,7 +41,7 @@ jobs:
           JF_URL: ${{ vars.JF_URL }}
         with:
           version: 2.104.1
-          oidc-provider-name: solenglatest
+          oidc-provider-name: mpatel-jfrog-githuboidc
 
       - name: Run JFrog CLI
         run: |
