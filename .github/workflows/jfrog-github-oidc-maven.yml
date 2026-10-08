@@ -57,11 +57,14 @@ jobs:
 
       - name: "Curation: audit" # https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli/cli-for-jfrog-security/cli-for-jfrog-curation
         run: |
+          # This repo also has Gradle files, which `jf ca` would auto-detect and fail on
+          # (no `jf gradle c` config). Drop them from this ephemeral checkout to audit Maven only.
+          rm -f build.gradle settings.gradle
           jf ca --format=table --threads=100
 
       - name: "Security Audit" # https://docs.jfrog-applications.jfrog.io/jfrog-applications/jfrog-cli/cli-for-jfrog-security
         run: |
-          jf audit
+          jf audit --mvn
 
       # Resolves dependencies through alpha-mvn-virtual, builds, and deploys the jar/pom to
       # alpha-mvn-virtual, recording everything as build info.
