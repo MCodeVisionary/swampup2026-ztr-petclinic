@@ -31,6 +31,13 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
+      # The runner's default Maven (3.10.0) breaks JFrog CLI's Maven extractor
+      # (NoSuchMethodError in ArtifactoryEclipseArtifactResolver), so pin a 3.9.x release.
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.9
+
       # Authenticates to the JFrog Platform with a GitHub OIDC token (no stored secrets).
       # Requires an OIDC integration named below in the JFrog Platform, with an identity mapping
       # for this repository, and the JF_URL repository/organization variable.
