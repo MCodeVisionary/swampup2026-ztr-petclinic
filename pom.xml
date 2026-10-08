@@ -27,8 +27,6 @@
     <webjars-bootstrap.version>5.3.8</webjars-bootstrap.version>
     <!-- 4.7.0 is blocked by curation (immature); use 4.6.3 -->
     <webjars-font-awesome.version>4.6.3</webjars-font-awesome.version>
-    <!-- objenesis 3.3 is blocked by curation; override the Spring Boot managed version -->
-    <objenesis.version>3.4</objenesis.version>
 
     <!-- Checkstyle needs to stay on v12 since v13 sets minimal jdk to 21 - https://checkstyle.org/releasenotes.html#Release_13.0.0 -->
     <checkstyle.version>12.3.1</checkstyle.version>
@@ -39,6 +37,17 @@
     <nohttp-checkstyle.version>0.0.11</nohttp-checkstyle.version>
     <spring-format.version>0.0.47</spring-format.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- objenesis 3.3 is blocked by curation; pin a version it allows -->
+      <dependency>
+        <groupId>org.objenesis</groupId>
+        <artifactId>objenesis</artifactId>
+        <version>3.4</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <!--
